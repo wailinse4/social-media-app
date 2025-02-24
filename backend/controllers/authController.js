@@ -1,4 +1,4 @@
-import { signupService, loginService, logoutService, getUserProfileService  } from "../services/authService.js"
+import { signupService, loginService, logoutService, getUserProfileService, verifyEmailService } from "../services/authService.js"
 
 export const signup = async (req, res) => {
     const { fullName, email, username, password } = req.body
@@ -46,3 +46,15 @@ export const getUserProfile = async (req, res) => {
         res.status(400).json({ message: error.message })
     }
 } 
+
+export const verifyEmail = async (req, res) => {
+    const { verificationToken } = req.query 
+    try {
+        await verifyEmailService(verificationToken)
+        res.status(200).json({ message: "Email Successfully Verified" })
+    }
+    catch(error) {
+        console.error(error)
+        res.status(400).json({ message: error.message })
+    }
+}

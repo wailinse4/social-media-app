@@ -4,6 +4,8 @@ import hashPassword from "../utils/hashPassword.js"
 import comparePasswords from "../utils/comparePasswords.js"
 import generateToken from "../utils/generateToken.js"
 import setCookie from "../utils/setCookie.js"
+import generateVerificationToken from "../utils/generateVerificationToken.js"
+import sendVerificationEmail from "../utils/sendVerificationEmail.js"
 
 import dotenv from "dotenv"
 
@@ -22,7 +24,11 @@ export const signupService = async (userData, res) => {
     }
 
     const hashedPassword = await hashPassword(password)
-    const newUser = await User.create({ fullName, email, username, password: hashedPassword })
+
+    const { verificationToken, verificationTokenExpiresAt } = generateVerificationToken()
+    const newUser = await User.create({ fullName, email, username, password: hashedPassword, verificationToken, verificationTokenExpiresAt })
+
+    await sendVerificationEmail(email, verificationToken)
 
     const token = generateToken(newUser._id)
     setCookie(res, token)
@@ -47,7 +53,7 @@ export const loginService = async (userData, res) => {
     setCookie(res, token)
 }
 
-export const logoutService = async (res) => {
+export const logoutService = (res) => {
     res.clearCookie("token", {
         httpOnly: true, 
         secure: process.env.NODE_ENV !== "production", 
@@ -66,6 +72,25 @@ export const getUserProfileService = async (userId) => {
     }
     catch(error) {
         throw new Error("Error fetching user data")
+    }    
+}
+
+export const verifyEmailService = async (verificationToken) => {
+    if(!verificationToken) {
+        throw new Error("Verification token is missing")
     }
-    
+
+    const user = await User.findOne({ verificationToken })
+    if(!user) {
+        throw new Error("Verificaiton token not found")
+    }
+
+    if(Date.now() > user.verificationTokenExpiresAt) {
+        throw new Error("Verificaiton token is expired")
+    }
+
+    user.isVerified = true 
+    user.verificationToken = undefined 
+    user.verificationTokenExpiresAt = undefined
+    await user.save()
 }

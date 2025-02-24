@@ -5,6 +5,11 @@ const userSchema = new mongoose.Schema({
     email: { type: String, required: true, unique: true, trim: true, lowercase: true }, 
     username: { type: String, required: true , unique: true, trim: true }, 
     password: { type: String, required: true, minLength: 6 }, 
+
+    isVerified: { type: Boolean, default: false },
+    verificationToken: { type: String }, 
+    verificationTokenExpiresAt: { type: Date }
+
 }, { timestamps: true })
 
 const User = new mongoose.model("User", userSchema)
